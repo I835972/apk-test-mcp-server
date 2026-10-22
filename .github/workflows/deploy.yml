@@ -1,1 +1,45 @@
+name: Build and Deploy details MCP Server
 
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ghcr.io/apk-test-mcp-server/email-summary-mcp-server:latest
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v4
+
+      - name: Deploy to Kyma
+        env:
+          CA_DATA: ${{ secrets.CA_DATA }}
+          SA_TOKEN: ${{ secrets.SA_TOKEN }}
+        run: |
+          python3 -c "import os; ca=os.environ['CA_DATA']; tok=os.environ['SA_TOKEN']; open('kubeconfig.yaml','w').write(f'apiVersion: v1\nkind: Config\nclusters:\n- cluster:\n    server: https://api.c-55cc5d0.stage.kyma.ondemand.com\n    certificate-authority-data: {ca}\n  name: kyma-cluster\ncontexts:\n- context:\n    cluster: kyma-cluster\n    user: github-actions-sa\n  name: kyma-context\ncurrent-context: kyma-context\nusers:\n- name: github-actions-sa\n  user:\n    token: {tok}\n')"
+          export KUBECONFIG=kubeconfig.yaml
+          kubectl label namespace default istio-injection=enabled --overwrite
+          kubectl apply -f k8s/deployment.yaml
+          kubectl rollout restart deployment/details-mcp-server -n default
+      

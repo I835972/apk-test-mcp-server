@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
         - name: details-mcp-server
-          image: ghcr.io/<github-org>/details-mcp-server:latest
+          image: ghcr.io/<I835972>/details-mcp-server:latest
           ports:
             - containerPort: 3000
 
@@ -26,11 +26,11 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: your-details-mcp-server
+  name: details-mcp-server
   namespace: default
 spec:
   selector:
-    app: your-details-mcp-server      # ← must match all 4 above
+    app: details-mcp-server      # ← must match all 4 above
   ports:
     - name: http
       port: 80                     # ALWAYS 80

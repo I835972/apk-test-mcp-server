@@ -1,1 +1,38 @@
 
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: details-mcp-server       # ← (1) your server name
+  namespace: default
+  labels:
+    app: details-mcp-server      # ← (2) must match selector
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: details-mcp-server    # ← (3) must match template
+  template:
+    metadata:
+      labels:
+        app: details-mcp-server  # ← (4) must match selector
+    spec:
+      containers:
+        - name: details-mcp-server
+          image: ghcr.io/<github-org>/details-mcp-server:latest
+          ports:
+            - containerPort: 3000
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: your-details-mcp-server
+  namespace: default
+spec:
+  selector:
+    app: your-details-mcp-server      # ← must match all 4 above
+  ports:
+    - name: http
+      port: 80                     # ALWAYS 80
+      targetPort: 3000             # matches PORT in index.js
+
